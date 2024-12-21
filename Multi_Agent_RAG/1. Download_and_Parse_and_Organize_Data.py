@@ -12,33 +12,40 @@ import shutil
 
 ######################### Recomended Script Modifiers####################################
 
-#If you have the full list text file (Dog_List.txt), save it to the main folder and set FULL_LIST to True to doqnload all of the data for all available breeds
-FULL_LIST = False
-if FULL_LIST:
-    def read_file_to_list(file_path):
-        with open(file_path, 'r') as file:
-            items_list = [line.strip() for line in file]
-        return items_list
-    file_path = 'Dog_List.txt'
-    dog_list = read_file_to_list(file_path)
-    print(dog_list)
-
-#Insert your manual dog list here in the dog_breed variable, or pass the dog_list variable from the previous cell as: dog_breed = dog_list
-"""The Dog_List.txt file is set to work with how the websites standardize the breed name, as well as for the dictionary below to manually gather the other breeds.
-It is highly recomended to use the breed name provided in that list """
-dog_breed = ["Saint-Bernard", "Rottweiler"]
-dog_breed = [breed.title() for breed in dog_breed] #This makes the first letter of every word in the list Capitalized to match the dictionary casing (if needed)
-directory_path= 'Dogs' #Path to save all of the files
-
-#Feel free to mess with the chunk size and overlap HERE
-chunk_size = 500
-chunk_overlap = 120
-
 #List of websites to gather data. You can turn them on or off here by setting to True or False.
 DOGTIME = True
 DAILYPAWS = True
 CANINEJOURNAL = True
 PETS4HOMES = True
+
+#Feel free to mess with the chunk size and overlap HERE
+chunk_size = 500
+chunk_overlap = 120
+
+"""If you want to download all of the breeds from the Image Classification app, you will need the Dog_List.txt
+ file. Then set FULL_LIST to True and file_path to the relative file path of the Dog_List.txt file to download all of the data for all available breeds.
+ You can also modify the Dog_List file to add or remove certain breeds from downloading."""
+FULL_LIST = True
+file_path = 'Dog_List.txt'
+if FULL_LIST:
+    def read_file_to_list(file_path):
+        with open(file_path, 'r') as file:
+            items_list = [line.strip() for line in file]
+        return items_list
+    file_path = file_path
+    dog_list = read_file_to_list(file_path)
+    print(dog_list)
+
+#Insert the dog breeds you want to load text information on here in the dog_breed variable (as a list), or pass the dog_list variable from the previous cell as: dog_breed = dog_list
+
+"""The Dog_List.txt file is set to work with how the websites standardize the breed name, as well as for the dictionary below to manually gather the other breeds.
+It is highly recomended to use the breed name provided in that list """
+dog_breed = ["Samoyed"]
+if FULL_LIST:
+    dog_breed = dog_list
+dog_breed = [breed.title() for breed in dog_breed] #This makes the first letter of every word in the list Capitalized to match the dictionary casing (if needed)
+directory_path= 'Dogs' #Path to save all of the files
+
 
 ###############################################################################################
 
@@ -54,7 +61,6 @@ pets4homes_W = {
     "Chinese-Shar-Pei": "Shar-Pei",
     "Shiba-Inu": "Japanese-Shiba-Inu",
     "Belgian-Malinois": "Belgian-Shepherd-Dog",
-    "Belgian-Sheepdog": "Belgian-Shepherd-Dog",
     "Bull-Terrier": "English-Bull-Terrier",
     "Bulldog": "English-Bulldog",
     "Collie": "Rough-Collie",
@@ -86,7 +92,7 @@ def fetch_and_parse(url, dog_breed, wnum):
 #This process the file further, chunks it with Langchain (recursive character)
 def process_and_chunk_text(texts, file_name, x=chunk_size, y=chunk_overlap):
     texts = [line.strip() for line in texts if len(line.strip()) > 55]
-    time.sleep(2)
+    time.sleep(2) #This slows down the script so that it doesn't create too many calls to the website at once.
 
     # Combine writing and chunking to minimize file operations
     text_to_write = '\n'.join(texts)
@@ -199,7 +205,7 @@ def move_text_files(folder_name):
     text_files = [f for f in os.listdir() if f.endswith('.txt')]
 
     # Exclude specific files from being moved
-    excluded_files = ['failed_urls.txt', 'failed_json.txt']
+    excluded_files = ['failed_urls.txt', 'failed_json.txt', 'Dog_List.txt']
     text_files = [f for f in text_files if f not in excluded_files]
 
     # Move each text file into the folder

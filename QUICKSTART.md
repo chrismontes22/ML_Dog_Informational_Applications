@@ -17,11 +17,12 @@ Also remember to check the [Dog_List.txt](https://github.com/chrismontes22/Dog-C
 **-Training-**
 Above are the machine learning applications and ways to run them. Feel free to also check out my model training scripts:  
 -[Image Classification](https://github.com/chrismontes22/Dog-Classification/blob/main/Image_Classification_Pipeline/Training%20an%20Image%20Classification%20Model.ipynb)  
-
 -[Using Unsloth to fine tune an language model with custom data](https://github.com/chrismontes22/Dog-Classification/blob/main/Tuning_a_Language_Model/Tuning_the_Model.ipynb)
 
 
+
 **-Other Data Collection Scripts-**
+
 -[Text Data Pipeline for tuning an LLM. This is a modified version of the text data collection portion from the Basic RAG Pipeline. It downloads the data, and organizes it into JSON format ready to be used for fine tuning an LLM. It also uploads it to Hugging Face.](https://github.com/chrismontes22/Dog-Classification/blob/main/Tuning_a_Language_Model/Text%20Data%20Pipeline.py)  
 
 -[Use Google's API to download images by search term](https://github.com/chrismontes22/Dog-Classification/blob/main/Image_Classification_Pipeline/Image%20Data%20Download.py)

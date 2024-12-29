@@ -5,7 +5,6 @@ Also remember to check the [Dog_List.txt](https://github.com/chrismontes22/Dog-C
 
 
 **-Inference-**
-
 1. Multi Agent RAG for dog breeds - The best way to run the multi agent RAG is by heading over to my [Google Colab notebook](https://colab.research.google.com/drive/1QF40xb7qqraKYBwJpOyZNVXq2AepJPUM#scrollTo=fOPqmHy0ruwv), and changing the runtime type to a GPU. The free T4 GPU is sufficient. Once you have done so, all you have to do is select the Runtime > Run All.
 
 2. From data colletion to a basic (not multi agent) RAG application - This application includes the full process from data collection, to processing, all the way to RAG output. You can get the .py script from my github [here](https://github.com/chrismontes22/Dog-Classification/blob/main/Multi_Agent_RAG/RAG_Pipeline_from_Data_Gathering_to_Inference.py) and run it after installing the necessary packages. Or you can run it from [Google Colab here](https://colab.research.google.com/drive/1by5UTMttZwW6xGGo89hmVNu2b90V3-HV#scrollTo=qpSPqD1AcNiH), then simply selecting Runtime > Run All. A GPU helps for the LLM portion of it, but can be ran on a CPU for inference as well in about two minutes, after the data has been embedded and the models have been loaded.
@@ -16,16 +15,16 @@ Also remember to check the [Dog_List.txt](https://github.com/chrismontes22/Dog-C
 
 
 **-Training-**
-
-Above are the machine learning applications and ways to run them. Feel free to also check out my model training scripts:  -[Image Classification](https://github.com/chrismontes22/Dog-Classification/blob/main/Image_Classification_Pipeline/Training%20an%20Image%20Classification%20Model.ipynb)  -[Using Unsloth to fine tune an language model with custom data](https://github.com/chrismontes22/Dog-Classification/blob/main/Tuning_a_Language_Model/Tuning_the_Model.ipynb)
+Above are the machine learning applications and ways to run them. Feel free to also check out my model training scripts:  
+-[Image Classification](https://github.com/chrismontes22/Dog-Classification/blob/main/Image_Classification_Pipeline/Training%20an%20Image%20Classification%20Model.ipynb)  
+-[Using Unsloth to fine tune an language model with custom data](https://github.com/chrismontes22/Dog-Classification/blob/main/Tuning_a_Language_Model/Tuning_the_Model.ipynb)
 
 
 **-Other Data Collection Scripts-**
-
--[Text Data Pipeline for tuning an LLM. This is a modified version of the text data collection portion from the Basic RAG Pipeline. It downloads the data, and organizes it into JSON format ready to be used for fine tuning an LLM. It also uploads it to Hugging Face.](https://github.com/chrismontes22/Dog-Classification/blob/main/Tuning_a_Language_Model/Text%20Data%20Pipeline.py)  -[Use Google's API to download images by search term](https://github.com/chrismontes22/Dog-Classification/blob/main/Image_Classification_Pipeline/Image%20Data%20Download.py)
+-[Text Data Pipeline for tuning an LLM. This is a modified version of the text data collection portion from the Basic RAG Pipeline. It downloads the data, and organizes it into JSON format ready to be used for fine tuning an LLM. It also uploads it to Hugging Face.](https://github.com/chrismontes22/Dog-Classification/blob/main/Tuning_a_Language_Model/Text%20Data%20Pipeline.py)  
+-[Use Google's API to download images by search term](https://github.com/chrismontes22/Dog-Classification/blob/main/Image_Classification_Pipeline/Image%20Data%20Download.py)
 
 **-Load the Image Classification as a Docker Container-**
-
 In order to use docker for this application, you must mount the picture file of your dog as you run the container. For both Bash and Powershell, simply replace INSERT_ABSOLUTE_PATH_TO_DOG_PHOTO_HERE with the absolute filepath of the dog picture, keeping the quotation marks.  It uses a Linux filesystem, so make sure to format your directory if you are using another OS. Spaces are ok to have in the file paths.
 
 -Bash

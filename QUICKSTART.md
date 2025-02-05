@@ -29,12 +29,12 @@ Above are the machine learning applications and ways to run them. Feel free to a
 -[Use Google's API to download images by search term](https://github.com/chrismontes22/Dog-Classification/blob/main/Image_Classification_Pipeline/Image%20Data%20Download.py)
 
 **-Load the Image Classification as a Docker Container-**
-In order to use docker for this application, you must mount the picture file of your dog as you run the container. For both Bash and Powershell, simply replace INSERT_ABSOLUTE_PATH_TO_DOG_PHOTO_HERE with the absolute filepath of the dog picture, keeping the quotation marks.  It uses a Linux filesystem, so make sure to format your directory if you are using another OS. For example, if using Windows, make sure to replace all "\" with "/" in the directory, and to replace C: with /c/ (or whatever drive you are using). Spaces are ok to have in the file paths.
+In order to use docker for this application, you must mount the picture file of your dog as you run the container. For both Bash and Powershell, simply replace INSERT_ABSOLUTE_PATH_TO_DOG_PHOTO_HERE with the absolute filepath of the dog picture, keeping the quotation marks.  It uses a Linux filesystem, so make sure to format your directory if you are using another OS. For example, if using Windows, make sure to replace all \ with / in the directory, and to replace C: with /c/ (or whatever drive you are using). Spaces are ok to have in the file paths. Replace what's in the angle brackets, including the angle brackets.
 
 -Bash
 First execute in a Bash terminal:
 ```
-export IMAGE_PATH="/mnt/INSERT_ABSOLUTE_PATH_TO_DOG_PHOTO_HERE"
+export IMAGE_PATH="/mnt/<INSERT_ABSOLUTE_PATH_TO_DOG_PHOTO_HERE>"
 ```
 
 Then execute exactly the following:
@@ -43,8 +43,8 @@ docker run --rm -it -e IMAGE_PATH="$IMAGE_PATH" -v "${IMAGE_PATH}:${IMAGE_PATH}"
 ```
 
 -Powershell
-Simply replace INSERT_ABSOLUTE_PATH_TO_DOG_PHOTO_HERE with your file path in Linux format and execute in a terminal:
+Simply replace INSERT_ABSOLUTE_PATH_TO_DOG_PHOTO_HERE with your file path in Linux format and execute in a terminal (leave the quotations):
 ```
-$IMAGE_PATH="INSERT_ABSOLUTE_PATH_TO_DOG_PHOTO_HERE"; docker run --rm -it -e IMAGE_PATH=$IMAGE_PATH -v "${IMAGE_PATH}:${IMAGE_PATH}" chrismontes22/dog_image_classifier
+$IMAGE_PATH="<INSERT_ABSOLUTE_PATH_TO_DOG_PHOTO_HERE>"; docker run --rm -it -e IMAGE_PATH=$IMAGE_PATH -v "${IMAGE_PATH}:${IMAGE_PATH}" chrismontes22/dog_image_classifier
 
 ```

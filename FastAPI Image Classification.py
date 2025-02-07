@@ -9,6 +9,7 @@ import torchvision.transforms as v2
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from sentence_transformers import SentenceTransformer
 import chromadb
+from fastapi.staticfiles import StaticFiles
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -40,7 +41,9 @@ transforms_test = v2.Compose([
     v2.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-# HTML form for uploading an image
+# Serve static files from the current directory
+app.mount("/static", StaticFiles(directory="."), name="static")
+
 @app.get("/", response_class=HTMLResponse)
 async def main():
     return """
@@ -51,7 +54,8 @@ async def main():
                 async function uploadImage(event) {
                     event.preventDefault();
                     const formData = new FormData();
-                    formData.append('file', document.querySelector('input[type="file"]').files[0]);
+                    const file = document.querySelector('input[type="file"]').files[0];
+                    formData.append('file', file);
 
                     const response = await fetch('/predict/', {
                         method: 'POST',
@@ -60,6 +64,11 @@ async def main():
 
                     const result = await response.json();
                     document.getElementById('predictions').innerHTML = result.predictions_html;
+
+                    // Display the uploaded image
+                    const imageUrl = URL.createObjectURL(file);
+                    document.getElementById('uploadedImage').src = imageUrl;
+                    document.getElementById('uploadedImage').style.display = 'block';
                 }
 
                 async function submitFeedback(event) {
@@ -76,6 +85,11 @@ async def main():
 
                 async function askQuestion(event) {
                     event.preventDefault();
+                    
+                    const askButton = event.target.querySelector('button[type="submit"]');
+                    askButton.disabled = true;  // Disable the button
+                    document.getElementById('question_response').innerHTML = "<p>Loading...</p>";
+
                     const formData = new FormData(event.target);
                     const response = await fetch('/ask/', {
                         method: 'POST',
@@ -84,8 +98,9 @@ async def main():
 
                     const result = await response.json();
                     document.getElementById('question_response').innerHTML = result.response_html;
+                    
+                    askButton.disabled = false;  // Re-enable the button
                 }
-
                 async function submitCustomBreed(event) {
                     event.preventDefault();
                     const formData = new FormData(event.target);
@@ -100,17 +115,22 @@ async def main():
             </script>
         </head>
         <body>
-            <h1>Upload an image of your dog</h1>
-            <form onsubmit="uploadImage(event)">
+            <h1>Welcome to the Dog Breed Classifier</h1>
+            <button onclick="window.location.href='/static/Dog_List.txt'">View Dog List</button>
+            <h1>Please upload an image of your dog.</h1>
+            <form id="uploadForm" onsubmit="uploadImage(event)">
                 <input type="file" name="file">
                 <button type="submit">Upload</button>
             </form>
+            <img id="uploadedImage" style="display:none; width:150px; height:150px;" />
             <div id="predictions"></div>
             <div id="feedback"></div>
             <div id="question_response"></div>
         </body>
     </html>
     """
+
+
 
 # Endpoint to handle predictions
 @app.post("/predict/")
@@ -146,7 +166,7 @@ async def predict(file: UploadFile = File(...)):
     predictions_html += """
         </ul>
         <form onsubmit="submitFeedback(event)">
-            <label for="choice">Choose the correct breed:</label><br>
+            <label for="choice">Choose the breed:</label><br>
             <select name="choice" id="choice">
     """
     
@@ -207,7 +227,7 @@ async def feedback(
         feedback_html = f"""
         <h1>What a cute {dog_breed.replace('-', ' ')}!</h1>
         <form onsubmit="askQuestion(event)">
-            <label for="question">What would you like to know about {dog_breed.replace('-', ' ')}s?</label><br>
+            <label for="question">What would you like to know about the {dog_breed.replace('-', ' ')} breed?</label><br>
             <input type="text" name="question" id="question" required><br><br>
             <input type="hidden" name="dog_breed" value="{dog_breed}">
             <button type="submit">Ask</button>
@@ -223,7 +243,7 @@ async def custom_breed(custom_breed: str = Form(...)):
     feedback_html = f"""
     <h1>What a cute {dog_breed.replace('-', ' ')}!</h1>
     <form onsubmit="askQuestion(event)">
-        <label for="question">What would you like to know about {dog_breed.replace('-', ' ')}s?</label><br>
+        <label for="question">What would you like to know about the {dog_breed.replace('-', ' ')} breed?</label><br>
         <input type="text" name="question" id="question" required><br><br>
         <input type="hidden" name="dog_breed" value="{dog_breed}">
         <button type="submit">Ask</button>
@@ -313,8 +333,9 @@ async def ask_question(
 
     # Return only the prompt and the cleaned output
     response_html = f"""
-    <h1>What would you like to know about {dog_breed}?</h1>
+    <p>Loading Complete. Response:</p>
     <p>{cleaned_output}</p>
+    <p>Feel free to ask another question, change the picture, or select another breed!<p>
     """
     return JSONResponse(content={"response_html": response_html})
 

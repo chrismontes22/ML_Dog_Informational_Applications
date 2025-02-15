@@ -1,0 +1,52 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install the CPU version of Torch and Torchvision.
+# Significant image reduction size over CUDA versions
+RUN pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+#Missing from the below is the Hugging Face Text Geration Model to reduce container size
+#The recommended model is HuggingFaceTB/SmolLM-1.7B. Pull the model from them and mount the folder to the created container
+
+#Script
+COPY FullAppDocker.py .
+#State_dict of image classification weights and biases
+COPY Dogrun2.pth .  
+#Vector database of the cleaned and chunked text data
+COPY vectordb vectordb
+#Embedding model to compare query to retrievals as vectors
+COPY embed embed
+COPY requirements.txt .
+COPY Dog_List.txt .
+
+# Install Python dependencies
+RUN pip3 install -r requirements.txt
+
+# Expose the port your app runs on
+EXPOSE 80
+
+# Create a directory for the model volume
+RUN mkdir -p /models
+
+# Set the environment variable for the model path
+ENV MODEL_PATH=/models
+
+# Run the application
+CMD python -m uvicorn AA2:app --host 0.0.0.0 --port 80
+
+#To run after building the image: docker run -it  -p 80:80/tcp <Image Name:version or ID>
+#In my case it's: docker run -it -p 80:80/tcp dogapp:4
+#Finally, simply go to a browser and type localhost
+
+#Update for pulling from dockerhub:
+#docker run -it -p 80:80/tcp chrismontes22/full_dog_app_fastapi_inference
+#then localhost in browser
+
+#update for optional model- 
+    # Bash: docker run -p 80:80/tcp -e MODEL_DIR=/models -v /mnt/c/Users/chris/OneDrive/Desktop/doggy_inference/HFDocker/hfmodel:/models 1b9816b6baf8
+    # Powershell: docker run -it -p 80:80/tcp -e MODEL_DIR=/models -v C:\Users\chris\OneDrive\Desktop\doggy_inference\HFDocker\hfmodel:/models 1b9816b6baf8
+
+#C:\Users\chris\OneDrive\Desktop\doggy_inference\HFDocker\hfmodel
+#"/mnt/c/Users/chris/OneDrive/Desktop/doggy_inference/HFDocker/hfmodel"
+#1b9816b6baf8

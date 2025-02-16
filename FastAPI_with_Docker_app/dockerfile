@@ -35,18 +35,3 @@ ENV MODEL_PATH=/models
 # Run the application
 CMD python -m uvicorn AA2:app --host 0.0.0.0 --port 80
 
-#To run after building the image: docker run -it  -p 80:80/tcp <Image Name:version or ID>
-#In my case it's: docker run -it -p 80:80/tcp dogapp:4
-#Finally, simply go to a browser and type localhost
-
-#Update for pulling from dockerhub:
-#docker run -it -p 80:80/tcp chrismontes22/full_dog_app_fastapi_inference
-#then localhost in browser
-
-#update for optional model- 
-    # Bash: docker run -p 80:80/tcp -e MODEL_DIR=/models -v /mnt/c/Users/chris/OneDrive/Desktop/doggy_inference/HFDocker/hfmodel:/models 1b9816b6baf8
-    # Powershell: docker run -it -p 80:80/tcp -e MODEL_DIR=/models -v C:\Users\chris\OneDrive\Desktop\doggy_inference\HFDocker\hfmodel:/models 1b9816b6baf8
-
-#C:\Users\chris\OneDrive\Desktop\doggy_inference\HFDocker\hfmodel
-#"/mnt/c/Users/chris/OneDrive/Desktop/doggy_inference/HFDocker/hfmodel"
-#1b9816b6baf8

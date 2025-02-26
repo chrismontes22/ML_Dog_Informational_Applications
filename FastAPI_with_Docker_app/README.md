@@ -8,6 +8,6 @@
     docker run -it -p 80:80/tcp chrismontes22/full_dog_app_fastapi_inference
 
 
-2. The FullApp.py file can run as long as you have the required files alongside it (embed folder, vectordb folder, Dogrun2.Pth). If there is no Hugging Face Text Generation Model compatible model present, the script will pull the recommended model, HuggingFaceTB/SmolLM-1.7B. Making sure you have the necessary installations, which can be found in therequirements.txt plus any version of torch and torchvision, you can run the app on a terminal using Uvicorn, specifically uvicorn FullApp:app --reload. Then follow the address provided by Uvicorn, usually http://127.0.0.1:8000.
+2. The FullApp.py file can run as long as you have the required files alongside it (embed folder, vectordb folder, Dogrun2.Pth). If there is no Hugging Face Text Generation Model compatible model present, the script will pull one of the recommended models, HuggingFaceTB/SmolLM-1.7B. Making sure you have the necessary installations, which can be found in therequirements.txt plus any version of torch and torchvision, you can run the app on a terminal using Uvicorn, specifically uvicorn FullApp:app --reload. Then follow the address provided by Uvicorn, usually http://127.0.0.1:8000.
 
 3. Everything in this subfolder is sufficient to recreate the docker image by building it with the provided dockerfile. However, you will need to pull a compatible Hugging Face Text Generation model and mount the folder to the built container, recommended model mentioned above

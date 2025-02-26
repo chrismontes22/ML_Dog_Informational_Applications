@@ -17,15 +17,22 @@ Also remember to check the [Dog_List.txt](https://github.com/chrismontes22/Dog-C
 
 3. From data colletion to a basic (single agent) RAG application - This application includes the full process from data collection, to processing, all the way to RAG output. You can get the .py file from my github [here](https://github.com/chrismontes22/Dog-Classification/blob/main/Multi_Agent_RAG/RAG_Pipeline_from_Data_Gathering_to_Inference.py) and run it after installing the necessary packages. Or you can run it from [Google Colab here](https://colab.research.google.com/drive/1by5UTMttZwW6xGGo89hmVNu2b90V3-HV#scrollTo=qpSPqD1AcNiH), then simply selecting Runtime > Run All. A GPU helps for the LLM portion of it, but can be ran on a CPU for inference as well in about two minutes, after the data has been embedded and the models have been loaded.
 
-4. Full model for inference - The easiest way to run the full application is by pulling it from my dockerhub. I created several options in regards to the LLM used because LLM's cause the docker image to grow by more than the size of the LLM:
-    -The first two images create containers that are fully packaged with the model included from Hugging Face. All you do is paste the line to a terminal and type "localhost" in a browser. Given the image sizes grow large when dealing with LLM's and Pytorch, the first one ("doglite") is recommended. The first lighter model is prithivMLmods/Llama-SmolTalk-3, while the second uses HuggingFaceTB/SmolLM2-1.7B-Instruct
-`docker run -it -p 80:80/tcp chrismontes22/litedog`
+4. Full model for inference - The easiest way to run the full application is by pulling it from my Docker Hub. I created several options in regards to the LLM used because LLM's cause the docker image to grow exponentially. Only the CPU version of Torch and Torchvision are packaged due to large image sizes as well:
+    -The first two images create containers that are fully packaged with the model already included from Hugging Face. All you do is paste the line to a terminal, wait for the image to be pulled and container to be ran, then type "localhost" in a browser. Given the image sizes grow large when dealing with LLM's and Pytorch, the first one ("doglite") is recommended. Model from [prithivMLmods/Llama-SmolTalk-3](prithivMLmods/Llama-SmolTalk-3.2-1B-Instruct). The second uses a slightly larger model, [HuggingFaceTB/SmolLM2-1.7B-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct).
+
+`docker run -it -p 80:80/tcp chrismontes22/doglite`
+
 `docker run -it -p 80:80/tcp chrismontes22/full_dog_app_fastapi_inference`
-    -The following image comes without a model packaged, but you can use it by simply mounting a text generation model of your choice form Hugging Face. Save the necessary LLM files to a folder and mount the folder to the container. Some recommended models are the ones mentioned above:
+
+    -The following image comes without a model packaged, but you can use it by simply mounting a text generation model of your choice form Hugging Face when runing a container. Save the necessary LLM files to a folder and mount that folder to the container. Then go to "localhost" in a browser. Some recommended models to mount are the ones mentioned above:
+
     Bash
-    `docker run -p 80:80/tcp -e MODEL_DIR=/models -v /mnt/<path to your HF model folder>:/models chrismontes22/full_dog_app_fastapi:v1`
+
+`docker run -p 80:80/tcp -e MODEL_DIR=/models -v /mnt/<path to your HF model folder>:/models chrismontes22/full_dog_app_fastapi:v1`
+
     Powershell
-    `docker run -it -p 80:80/tcp -e MODEL_DIR=/models -v <path to your HF model folder>:/models chrismontes22/full_dog_app_fastapi:v1`
+
+`docker run -it -p 80:80/tcp -e MODEL_DIR=/models -v <path to your HF model folder>:/models chrismontes22/full_dog_app_fastapi:v1`
 
 5. Fine tuned language model for fun fact output - To see the fine tuned model that outputs random facts about a dog breed, the best way is to see it in this [Colab notebook.](https://colab.research.google.com/drive/1mDUgQ--ztyFNzUG4O0S4WNlp8vnD-u-H#scrollTo=TXbi_oPFZ0EB) This notebook has the Image Classification from number 2 above, and passes the result (a dog breed) to the language model to output random facts about the predicted breed. It also saves the user's input do gather data on the model's accuracy in csv form.
 

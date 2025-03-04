@@ -1,50 +1,37 @@
-"""
-Original file is located at
-    https://colab.research.google.com/drive/1by5UTMttZwW6xGGo89hmVNu2b90V3-HV
-
-Here is a full pipeline to create a basic RAG application. By running this script, you can download information about dogs, parse it, and organize/chunk it. Then it embeds the information into a vector store. Finally, it downloads an LLM, retrieves the appropriate embeddings, and outputs a fact, all in a single click.
-"""
-
-#This notebook was created in Google Colab, but works well as a single script. The main difference is that here it is recomended to install the necessary packages before running the script. Here are the pip packages:
-#pip install requests langchain bs4 gdown transformers sentence-transformers chromadb
-
-"""The code below downloads all the text data in HTML format and cleans it up for embedding. Here you can modify the list of dog breeds and mess around with the chunk size.
-You can always add more breeds after you create the vectore store! To do so go to the dog_breed list and simply insert the breeds you want the data from, and run everything again. You can always move the vector around as a folder, just make sure to keep track of the vector database name. It is "dogdb" here, which can be found in the line:
-collection = client.get_or_create_collection("dogdb")
-You use this line to both create and call the vector database, so you need to track this name.
-
-The script is a modified version of my [Text_Data_Pipeline.py](https://github.com/chrismontes22/Dog-Classification/blob/main/Tuning_an_LLM/Text%20Data%20Pipeline.py) that was used to streamline the fine tuning of an LLM.
-Instead of using Bert for data augmentation and turning the file into JSON,
-it chunks the data with Langchain and organizes it by dog breed after having downloaded and parsed the text. Most of the customization you will need in this script is int the section
-labeled "Recommended Script Modifiers".
-"""
-
 import requests
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from bs4 import BeautifulSoup
-import os
 import time
 import shutil
 import gdown
+from typing import List, Dict, Tuple
+import os
+import re
+from sentence_transformers import SentenceTransformer
+import chromadb
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM
+
 
 # Download the full list of dog breeds (Dog_List.txt)
 url = 'https://drive.google.com/file/d/13Va0eqByu_CiR1O3xXO-OZLfJjY8NwwM/view?usp=sharing'
 output_path = 'Dog_List.txt'
 gdown.download(url, output_path, quiet=False,fuzzy=True)
 
+
 #############################################################################################################################################
-######################################################   Recommended Script Modifiers  ######################################################
+######################################################   Recommended Script Modifiers  ######################################################
 #############################################################################################################################################
 
 #List of websites to gather data. You can turn them on or off here by setting to True or False.
-DOGTIME = True
-DAILYPAWS = True
-CANINEJOURNAL = False
-PETS4HOMES = True
+DOGTIME: bool = True
+DAILYPAWS: bool = True
+CANINEJOURNAL: bool = True
+PETS4HOMES: bool = True
 
 #Feel free to mess with the chunk size and overlap HERE
-chunk_size = 500
-chunk_overlap = 120
+chunk_size: int = 500
+chunk_overlap: int = 120
 
 """The Dog_List.txt file is set to work with the standard breed names used in website URL's.
 It is highly recomended to refer to the breed name provided in that list."""
@@ -52,20 +39,20 @@ It is highly recomended to refer to the breed name provided in that list."""
 #Please insert the dog breeds you would like for gather text data for as a list set to the dog_breed variable.
 #If you want to download text data all of the breeds from the Image Classification app, set FULL_LIST to True. Setting to True will override the dog_breed list above it.
 
-dog_breed = ["Siberian-Husky", "Labrador-Retriever"]
-FULL_LIST = False
+dog_breed: List[str] = ["Alaskan-Malamute", "Akita"]
+FULL_LIST: bool = False
 if FULL_LIST:
-    def read_file_to_list(file_path):
+    def read_file_to_list(file_path: str) -> List[str]:
         with open(file_path, 'r') as file:
             items_list = [line.strip() for line in file]
         return items_list
-    file_path = "Dog_List.txt"
-    dog_list = read_file_to_list(file_path)
+    file_path: str = "Dog_List.txt"
+    dog_list: List[str] = read_file_to_list(file_path)
     print(dog_list)
 if FULL_LIST:
     dog_breed = dog_list
 dog_breed = [breed.title() for breed in dog_breed] #This makes the first letter of every word in the list Capitalized to match the dictionary casing (if needed)
-directory_path= 'Dog_Texts' #Path to save all of the files
+directory_path: str = 'Dog_Texts' #Path to save all of the files
 
 
 #############################################################################################################################################
@@ -78,10 +65,10 @@ websites are constantly changing the name used to represent a breed in their URL
 This script logs all the URL errors that occur, so you can let the script run once and then check out the URL log.
 You can add your own here if there are other breeds outside of the Dog_List.txt that dont match the website"""
 
-dogtime_W = {"German-Shepherd": "German-Shepherd-Dog", "Xoloitzcuintli": "Xoloitzuintli"}
-dailypaws_W = {"Xoloitzcuintli": "Xoloitzcuintli-Mexican-Hairless", "Poodle": "Standard-Poodle"}
-caninejournal_W = {"Chinese-Shar-Pei": "Shar-Pei"}
-pets4homes_W = {
+dogtime_W: Dict[str, str] = {"German-Shepherd": "German-Shepherd-Dog", "Xoloitzcuintli": "Xoloitzuintli"}
+dailypaws_W: Dict[str, str] = {"Xoloitzcuintli": "Xoloitzcuintli-Mexican-Hairless", "Poodle": "Standard-Poodle"}
+caninejournal_W: Dict[str, str] = {"Chinese-Shar-Pei": "Shar-Pei"}
+pets4homes_W: Dict[str, str] = {
     "Chinese-Shar-Pei": "Shar-Pei",
     "Shiba-Inu": "Japanese-Shiba-Inu",
     "Belgian-Malinois": "Belgian-Shepherd-Dog",
@@ -96,45 +83,30 @@ pets4homes_W = {
 }
 
 
-#Parse the html and output a text file
-def fetch_and_parse(url, dog_breed, wnum):
+def fetch_and_parse(url: str, dog_breed: str, wnum: int) -> List[str]:
+    """Parse the html and output a text file"""
     response = requests.get(url)
-
     if response.status_code != 200:
         print(f'Failed to retrieve {url}. Status code: {response.status_code}')
         with open('failed_urls.txt', 'a') as f:
             f.write(f'{url}\n')  # Write the failed URL and a newline character
         return []  # Return an empty list so the script continues
-
     soup = BeautifulSoup(response.text, 'html.parser') # Parse the HTML content with BeautifulSoup.
     texts = [p.get_text() for p in soup.find_all('p')]   # Find all <p> tags and extract the text
-
     with open(f'{dog_breed}{wnum}.txt', 'w', encoding = 'utf-8') as f: # Write the texts to a file
         f.write('\n'.join(texts))
     return texts if texts else []
 
-#This process the file further, chunks it with Langchain (recursive character)
-def process_and_chunk_text(texts, file_name, x=chunk_size, y=chunk_overlap):
+def process_and_chunk_text(texts: List[str], file_name: str, x: int = chunk_size, y: int = chunk_overlap) -> None:
+    """#This processes the file further, chunks it with Langchain (recursive character)"""
     texts = [line.strip() for line in texts if len(line.strip()) > 55]
-    time.sleep(2) #This slows down the script so that it doesn't create too many calls to the website at once.
-
-    # Combine writing and chunking to minimize file operations
-    text_to_write = '\n'.join(texts)
-
-    # Initialize the text splitter
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=x,
-        chunk_overlap=y
-    )
-
-    # Split the text into chunks
-    chunks = text_splitter.split_text(text_to_write)
-
-    # Write the chunks back to the file
+    time.sleep(2)
+    text_to_write: str = '\n'.join(texts)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=x, chunk_overlap=y)
+    chunks: List[str] = text_splitter.split_text(text_to_write)
     with open(file_name, 'w', encoding='utf-8') as f:
         for chunk in chunks:
             f.write(chunk + "\n")
-
     if os.path.getsize(file_name) == 0:
         os.remove(file_name)
 
@@ -144,18 +116,16 @@ Some minor code adjustments is usually enough when adding a new website to go fr
 Make sure to add the line for wnum, this is to identify the text file to the corresponding website; example the next website would have wnum = 5"""
 
 def dogtime_data(dog_breed):
-    wnum = 1 #This helps name the files that get outputed, such as file1.txt, file1.json
+    """Adjustments necessary to text files gathered from Dogtime website."""
+    wnum = 1 # This helps name the files that get outputed, such as file1.txt, file1.json
     file_name = f'{dog_breed}{wnum}.txt'
     individual_texts_file_path = f"{directory_path}/individual_texts/{dog_breed}{wnum}.txt"
     if not os.path.exists(individual_texts_file_path):
         dogtime_name = dogtime_W.get(dog_breed, dog_breed).lower() #Retrieves the unique breed name from the site if it isn't like the list. Some sites require all lower cased so this handles with ".lower"
         url = f'https://dogtime.com/dog-breeds/{dogtime_name}' #URL name and variable
         texts = fetch_and_parse(url, dog_breed, wnum)
-
-        # Remove unwanted lines
         start_remove = 'Looking for the best dog for your apartment?'
         end_remove = 'Playing with our pups is good for us.'
-
         start_index = None
         end_index = None
 
@@ -174,93 +144,94 @@ def dogtime_data(dog_breed):
     else:
         print(f"File {file_name} already exists.")
 
-def dailypaws_data(dog_breed):
-    wnum = 2
-    file_name = f'{dog_breed}{wnum}.txt'
-    individual_texts_file_path = f"{directory_path}/individual_texts/{dog_breed}{wnum}.txt"
+
+
+def dailypaws_data(dog_breed: str) -> None:
+    """Adjustments necessary to text files gathered from Daily Paws website."""
+    wnum: int = 2
+    file_name: str = f'{dog_breed}{wnum}.txt'
+    individual_texts_file_path: str = f"{directory_path}/individual_texts/{dog_breed}{wnum}.txt"
     if not os.path.exists(individual_texts_file_path):
-        dailypaws_name = dailypaws_W.get(dog_breed, dog_breed).lower()
-        url = f'https://www.dailypaws.com/dogs-puppies/dog-breeds/{dailypaws_name}'
-        texts = fetch_and_parse(url, dog_breed, wnum)
-
-        # Omit the second, third, and fourth lines from the texts
+        dailypaws_name: str = dailypaws_W.get(dog_breed, dog_breed).lower()
+        url: str = f'https://www.dailypaws.com/dogs-puppies/dog-breeds/{dailypaws_name}'
+        texts: List[str] = fetch_and_parse(url, dog_breed, wnum)
         del texts[1:4]
-
         process_and_chunk_text(texts, file_name)
     else:
         print(f"File {file_name} already exists.")
 
-def caninejournal_data(dog_breed):
-    wnum = 3
-    file_name = f'{dog_breed}{wnum}.txt'
-    individual_texts_file_path = f"{directory_path}/individual_texts/{dog_breed}{wnum}.txt"
+def caninejournal_data(dog_breed: str) -> None:
+    """Adjustments necessary to text files gathered from Canine Journal website."""
+    wnum: int = 3
+    file_name: str = f'{dog_breed}{wnum}.txt'
+    individual_texts_file_path: str = f"{directory_path}/individual_texts/{dog_breed}{wnum}.txt"
     if not os.path.exists(individual_texts_file_path):
-        caninejournal_name = caninejournal_W.get(dog_breed, dog_breed).lower()
-        url = f"https://www.caninejournal.com/{caninejournal_name}"
-        texts = fetch_and_parse(url, dog_breed, wnum)
-        # Remove the first and last 5 lines
+        caninejournal_name: str = caninejournal_W.get(dog_breed, dog_breed).lower()
+        url: str = f"https://www.caninejournal.com/{caninejournal_name}"
+        texts: List[str] = fetch_and_parse(url, dog_breed, wnum)
         texts = texts[5:-5]
         process_and_chunk_text(texts, file_name)
     else:
         print(f"File {file_name} already exists.")
 
-def pets4homes_data(dog_breed):
-    wnum = 4
-    file_name = f'{dog_breed}{wnum}.txt'
-    individual_texts_file_path = f"{directory_path}/individual_texts/{dog_breed}{wnum}.txt"
+def pets4homes_data(dog_breed: str) -> None:
+    """Adjustments necessary to text files gathered from Canine Journal website."""
+    wnum: int = 4
+    file_name: str = f'{dog_breed}{wnum}.txt'
+    individual_texts_file_path: str = f"{directory_path}/individual_texts/{dog_breed}{wnum}.txt"
     if not os.path.exists(individual_texts_file_path):
-        pets4homes_name = pets4homes_W.get(dog_breed, dog_breed).lower()
-        url = f"https://www.pets4homes.co.uk/dog-breeds/{pets4homes_name}"
-        texts = fetch_and_parse(url, dog_breed, wnum)
-        # Remove the first and last 5 lines
+        pets4homes_name: str = pets4homes_W.get(dog_breed, dog_breed).lower()
+        url: str = f"https://www.pets4homes.co.uk/dog-breeds/{pets4homes_name}"
+        texts: List[str] = fetch_and_parse(url, dog_breed, wnum)
         texts = texts[5:-5]
         process_and_chunk_text(texts, file_name)
     else:
         print(f"File {file_name} already exists.")
 
 ##################################################################################
-#Moves all of the text files into a subfolder to clean up the work folder
-def move_text_files(folder_name):
-    # Create the folder if it doesn't exist
+def create_folder_if_not_exists(folder_name: str) -> None:
+    """Creates the specified folder if it does not exist."""
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
 
-    # Get a list of all text files in the current directory
+def get_excluded_files() -> List[str]:
+    """Returns a list of files to exclude from moving."""
+    return ['failed_urls.txt', 'failed_json.txt', 'Dog_List.txt']
+
+def filter_text_files(excluded_files: List[str]) -> List[str]:
+    """Filters out excluded files from the list of text files."""
     text_files = [f for f in os.listdir() if f.endswith('.txt')]
+    return [f for f in text_files if f not in excluded_files]
 
-    # Exclude specific files from being moved
-    excluded_files = ['failed_urls.txt', 'failed_json.txt', 'Dog_List.txt']
-    text_files = [f for f in text_files if f not in excluded_files]
+def move_file_to_folder(file: str, folder_name: str) -> None:
+    """Moves a file to the specified folder, removing it if it already exists."""
+    destination_file = os.path.join(folder_name, file)
+    if os.path.exists(destination_file):
+        os.remove(destination_file)
+    shutil.move(file, folder_name)
 
-    # Move each text file into the folder
+def move_text_files(folder_name: str) -> None:
+    """Moves all text files into a subfolder."""
+    create_folder_if_not_exists(folder_name)
+    excluded_files = get_excluded_files()
+    text_files = filter_text_files(excluded_files)
     for file in text_files:
-        destination_file = os.path.join(folder_name, file)
-        if os.path.exists(destination_file):
-            os.remove(destination_file)  # Remove the file if it already exists
-        shutil.move(file, folder_name)
+        move_file_to_folder(file, folder_name)
 
 #Function to merge all files with the same base name into one. It saves the individual files under "individual_texts"
-def merge_text_files(directory, dog_breed):
-    # Ensure the 'used data' folder exists
-    individual_texts_dir = os.path.join(directory, 'individual_texts')
-    if not os.path.exists(individual_texts_dir):
-        os.makedirs(individual_texts_dir)
+def ensure_directory_exists(directory: str) -> None:
+    """Ensures the specified directory exists."""
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
-    # Merge text files by breed
-    parent_file = os.path.join(directory, f'{dog_breed}.txt')
+def merge_child_files(parent_file: str, child_file: str) -> None:
+    """Appends the content of a child file to the parent file."""
+    with open(child_file, 'r', encoding='utf-8') as f_child, \
+         open(parent_file, 'a', encoding='utf-8') as f_parent:
+        f_parent.write(f_child.read() + '\n')
 
-    for filename in os.listdir(directory):
-        if filename.startswith(dog_breed) and filename != f'{dog_breed}.txt':
-            child_file = os.path.join(directory, filename)
-
-            # Append the content of child files to the parent file
-            with open(child_file, 'r', encoding='utf-8') as f_child, \
-                 open(parent_file, 'a', encoding='utf-8') as f_parent:
-                f_parent.write(f_child.read() + '\n')
-
-            # Move the child file to 'used data' folder
-            shutil.move(child_file, individual_texts_dir)
-
+def remove_empty_lines(parent_file: str) -> None:
+    """Removes empty lines from the parent file."""
     with open(parent_file, 'r', encoding='utf-8') as file:
         lines = file.readlines()
 
@@ -269,8 +240,27 @@ def merge_text_files(directory, dog_breed):
             if line.strip():
                 file.write(line)
 
-#Now call the website functions in a loop for the list
+def move_file_to_used_data(child_file: str, used_data_dir: str) -> None:
+    """Moves a child file to the 'used data' directory."""
+    shutil.move(child_file, used_data_dir)
+
+def merge_text_files(directory: str, dog_breed: str) -> None:
+    """Merges text files by breed."""
+    individual_texts_dir = os.path.join(directory, 'individual_texts')
+    ensure_directory_exists(individual_texts_dir)
+
+    parent_file = os.path.join(directory, f'{dog_breed}.txt')
+
+    for filename in os.listdir(directory):
+        if filename.startswith(dog_breed) and filename != f'{dog_breed}.txt':
+            child_file = os.path.join(directory, filename)
+            merge_child_files(parent_file, child_file)
+            move_file_to_used_data(child_file, individual_texts_dir)
+
+    remove_empty_lines(parent_file)
+
 for breed in dog_breed:
+    """Calls the functions for each website, loops for each breed"""
     if DOGTIME:
         dogtime_data(breed)
     if DAILYPAWS:
@@ -282,51 +272,38 @@ for breed in dog_breed:
     move_text_files(directory_path)
     merge_text_files(directory_path, breed)
 
-"""Here we create the vector store and embeddings from the text files from the code above. The code above created a text file from each website for each breed, so potentially 4 files per breed. They are saved in the "Dogs/individual_texts" folder. I recommend embedding these text files, instead of the merged text files by breed that are saved simply under "Dog_Texts"."""
 
-import re
-import os
-from sentence_transformers import SentenceTransformer
-import chromadb
-
-# Initialize the model
 smodel = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
-# Initialize the chromadb client and collection
 client = chromadb.PersistentClient(path="dog")
 collection = client.get_or_create_collection("dogdb")
 
 directory_path = f"{directory_path}/individual_texts"
 text_files = [file for file in os.listdir(directory_path) if file.endswith('.txt')]
 
-for file_name in text_files:
-    # Construct the full path to the text file
+def read_and_split_file(directory_path: str, file_name: str) -> List[str]:
+    """Read a file and split its content into lines."""
     file_path = os.path.join(directory_path, file_name)
-
-    # Open and read the corresponding text file
     with open(file_path, 'r', encoding='utf-8') as file:
-        file_content = file.read()
+        return file.read().splitlines()
 
+def encode_documents(documents: List[str], smodel: SentenceTransformer) -> List[List[float]]:
+    """Encode documents into vector embeddings."""
+    return smodel.encode(documents)
 
-    # Assuming each line in the file represents an embedding/document
-    documents = file_content.splitlines()
+def extract_breed_and_generate_ids(file_name: str, num_embeddings: int) -> Tuple[str, List[str]]:
+    """Extract breed name and generate unique IDs."""
+    breed = re.sub(r'\d+\.txt$', '', file_name).replace('_', '-').replace('txt', '')
+    base_name = file_name.split('.')[0]
+    ids = [f"{base_name}_{i + 1}" for i in range(num_embeddings)]
+    return breed, ids
 
-    # Encode the documents
-    vectors = smodel.encode(documents)
+def create_metadatas(breed: str, num_embeddings: int) -> List[dict]:
+    """Create metadata entries for each document."""
+    return [{"breed": breed} for _ in range(num_embeddings)]
 
-    # Generate IDs for each document
-    num_embeddings = len(vectors)
-
-    # Extract breed name using regex to remove numbers and file extensions
-    breed = re.sub(r'\d+\.txt$', '', file_name)  # Removes the trailing number and .txt
-    breed = breed.replace('_', '-').replace('txt', '')  # Convert underscores to hyphens if needed
-
-    ids = [f"{file_name.split('.')[0]}_{i + 1}" for i in range(num_embeddings)]  # Prefix IDs with file name
-
-    # Add metadata for each document
-    metadatas = [{"breed": breed} for _ in range(num_embeddings)]  # Example metadata
-
-    # Add the documents, embeddings, and metadata to the collection
+def add_to_collection(collection, documents, ids, vectors, metadatas):
+    """Add documents, embeddings, and metadata to the collection."""
     collection.add(
         documents=documents,
         ids=ids,
@@ -334,29 +311,24 @@ for file_name in text_files:
         metadatas=metadatas
     )
 
-    # Print confirmation
-    print(f"Added {num_embeddings} embeddings from {file_name} to the collection with IDs: {ids}")
+def process_text_files(directory_path: str, text_files: List[str], smodel: SentenceTransformer, collection) -> None:
+    for file_name in text_files:
+        documents = read_and_split_file(directory_path, file_name)
+        vectors = encode_documents(documents, smodel)
+        num_embeddings = len(vectors)
+        breed, ids = extract_breed_and_generate_ids(file_name, num_embeddings)
+        metadatas = create_metadatas(breed, num_embeddings)
+        add_to_collection(collection, documents, ids, vectors, metadatas)
+        print(f"Added {num_embeddings} embeddings from {file_name} to the collection with IDs: {ids}")
 
+process_text_files(directory_path, text_files, smodel, collection)
 print("All text files have been processed and added to the collection.")
 
-"""The following code downloads the LLM for inference later on. Feel free to change the model. To do so, find an appropriate model from Hugging Face, and replace HuggingFaceTB/SmolLM2-1.7B-Instruct with repo/model-name. Make sure it is a text-generation model and you have the appropriate permissions set."""
 
-import torch
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# Load model directly
-from transformers import AutoTokenizer, AutoModelForCausalLM
-
 tokenizer = AutoTokenizer.from_pretrained("HuggingFaceTB/SmolLM2-1.7B-Instruct")
 model = AutoModelForCausalLM.from_pretrained("HuggingFaceTB/SmolLM2-1.7B-Instruct").to(device)
-
-"""The final block allows the user to input a query, then retrieves the appropriate data from the vector store. Finally the chosen LLM cleans it for inference."""
-
-# Initialize the model
-smodel = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2').to(device)
-
-# Initialize the chromadb client and collection
-client = chromadb.PersistentClient(path="dog")
-collection = client.get_or_create_collection("dogdb")
 
 question = input("Please enter your question: ")
 
@@ -372,6 +344,7 @@ print(results)
 #Prints out the embeddign results. If you only want inference, cancel this line
 
 def clean_text_block(text):
+    """Cleans the text vector output to pass cleanly to the LLM."""
     start_keyword = "'documents': [["
     end_keyword = "]], 'uris':"
 
@@ -398,3 +371,4 @@ output_text = tokenizer.decode(outputs[0])
 start_index = output_text.find("<|im_start|>assistant") + len("<|im_start|>assistant")
 end_index = output_text.find("<|im_end|>", start_index)
 print(output_text[start_index:end_index].strip())
+

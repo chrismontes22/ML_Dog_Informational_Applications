@@ -1,3 +1,5 @@
+# Script to go in the dockerfile. Recomended to look at the stand alone script instead, FullApp.py
+
 import os
 from pathlib import Path
 from fastapi import FastAPI, File, UploadFile, Form

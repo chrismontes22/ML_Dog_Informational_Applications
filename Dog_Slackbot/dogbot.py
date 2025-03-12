@@ -7,17 +7,18 @@ from flask import Flask, request
 from sentence_transformers import SentenceTransformer
 import chromadb
 import google.generativeai as genai
+from typing import Tuple, Dict, Any
 
 # Load environment variables from .env file
 load_dotenv(find_dotenv())
 
 # Set Slack API credentials
-SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
-SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
-SLACK_BOT_USER_ID = os.environ["SLACK_BOT_USER_ID"]
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+SLACK_BOT_TOKEN: str = os.environ["SLACK_BOT_TOKEN"]
+SLACK_SIGNING_SECRET: str = os.environ["SLACK_SIGNING_SECRET"]
+SLACK_BOT_USER_ID: str = os.environ["SLACK_BOT_USER_ID"]
+GOOGLE_API_KEY: str | None = os.getenv("GOOGLE_API_KEY")
 
-def initialize_chromadb_and_model():
+def initialize_chromadb_and_model() -> Tuple[chromadb.PersistentClient, chromadb.Collection, SentenceTransformer]:
     """
     Lazily initializes the ChromaDB client, collection, and SentenceTransformer model.
     These are heavy resources that are loaded on demand to save persistent memory.
@@ -27,7 +28,7 @@ def initialize_chromadb_and_model():
     smodel = SentenceTransformer('./embedmodel')
     return client, collection, smodel
 
-def query_and_retrieve_results(collection, model, question, n_results=3):
+def query_and_retrieve_results(collection: chromadb.Collection, model: SentenceTransformer, question: str, n_results: int = 3) -> Any:
     """
     Generates a query, computes embeddings, and retrieves results.
     """
@@ -39,7 +40,7 @@ def query_and_retrieve_results(collection, model, question, n_results=3):
     )
     return results
 
-def clean_text_block(text):
+def clean_text_block(text: str) -> str:
     """
     Cleans the query results by extracting content between specific keywords.
     """
@@ -54,7 +55,7 @@ def clean_text_block(text):
         return cleaned_text
     return "Keywords not found in the text."
 
-def configure_generative_ai():
+def configure_generative_ai() -> genai.GenerativeModel:
     """
     Configures Google Generative AI using the API key from environment variables.
     """
@@ -65,7 +66,7 @@ def configure_generative_ai():
     genai.configure(api_key=api_key)
     return genai.GenerativeModel('gemini-1.5-flash')
 
-def generate_human_response(model, results, question, max_tokens=256):
+def generate_human_response(model: genai.GenerativeModel, results: str, question: str, max_tokens: int = 256) -> str:
     """
     Generates a response using the generative AI model.
     """
@@ -80,7 +81,7 @@ Respond in a friendly manner; you are an informational assistant about dogs."""
     response = model.generate_content(prompt, generation_config=generation_config)
     return response.text
 
-def process_question(question):
+def process_question(question: str) -> str:
     """
     Processes the question and generates a human-readable response.
     Loads heavy resources on demand and cleans them up after processing.
@@ -108,31 +109,31 @@ flask_app = Flask(__name__)
 handler = SlackRequestHandler(app)
 
 @app.event("app_mention")
-def handle_mentions(body, say):
+def handle_mentions(body: Dict[str, Any], say: Any) -> None:
     """
     Event listener for Slack mentions.
     When the bot is mentioned, this function extracts the question, 
     processes it by loading heavy models on demand, and sends the response.
     """
     # Extract the message text from the Slack event
-    text2 = body["event"]["text"]
+    text2: str = body["event"]["text"]
 
     # Remove the bot mention from the message
-    mention = f"<@{SLACK_BOT_USER_ID}>"
-    question = text2.replace(mention, "").strip()
+    mention: str = f"<@{SLACK_BOT_USER_ID}>"
+    question: str = text2.replace(mention, "").strip()
 
     # Respond immediately to the mention
     say("*Woof!*")
     
     # Process the question using the lazy-loaded resources
-    human_response = process_question(question)
+    human_response: str = process_question(question)
     
     # Send the processed response back to the channel
     say(human_response)
     say("*Woof!*")
 
 @flask_app.route("/slack/events", methods=["POST"])
-def slack_events():
+def slack_events() -> Tuple[str, int, Dict[str, str]]:
     data = request.json
     # Handle URL verification challenge
     if data.get("type") == "url_verification":

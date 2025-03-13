@@ -72,11 +72,12 @@ def generate_human_response(model: genai.GenerativeModel, results: str, question
     """
     generation_config = genai.types.GenerationConfig(max_output_tokens=max_tokens)
     prompt = (
-        f"""After the colon is a set of text with information about dogs, then a question about the given text. 
-Please answer the question based on the text, and do not talk about the documentation:
-text - {results}
-question - {question}
-Respond in a friendly manner; you are an informational assistant about dogs."""
+        f"""You are an assistant that helps people learn more about dog breeds. 
+        After the colon is a set of text with information about dogs, then a question about the given text. 
+        Please answer the question based on the text, but do not mention the text:
+        text - {results}
+        question - {question}
+        Respond in a friendly manner; you are an informational assistant about dogs."""
     )
     response = model.generate_content(prompt, generation_config=generation_config)
     return response.text

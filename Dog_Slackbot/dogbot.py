@@ -16,7 +16,7 @@ load_dotenv(find_dotenv())
 SLACK_BOT_TOKEN: str = os.environ["SLACK_BOT_TOKEN"]
 SLACK_SIGNING_SECRET: str = os.environ["SLACK_SIGNING_SECRET"]
 SLACK_BOT_USER_ID: str = os.environ["SLACK_BOT_USER_ID"]
-GOOGLE_API_KEY: str | None = os.getenv("GOOGLE_API_KEY")
+GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY")
 
 def initialize_chromadb_and_model() -> Tuple[chromadb.PersistentClient, chromadb.Collection, SentenceTransformer]:
     """

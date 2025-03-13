@@ -4,10 +4,10 @@ Experience with Slack is required to run this bot. In this folder I have provide
 
 Next set up a .env file with all the keys, as demonstrated below. 
 
-SLACK_BOT_TOKEN = <SLACK_BOT_TOKEN>
-SLACK_SIGNING_SECRET = <SLACK_SIGNING_SECRET>
-SLACK_BOT_USER_ID = <SLACK_BOT_USER_ID>
-GOOGLE_API_KEY = <GOOGLE_API_KEY>
+	SLACK_BOT_TOKEN = <SLACK_BOT_TOKEN>
+	SLACK_SIGNING_SECRET = <SLACK_SIGNING_SECRET>
+	SLACK_BOT_USER_ID = <SLACK_BOT_USER_ID>
+	GOOGLE_API_KEY = <GOOGLE_API_KEY>
 
 Finally expose it to the web and connect it to slack You may have to invite the bot as well.
 

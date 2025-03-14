@@ -15,7 +15,7 @@ Basic rundown
 
 1. Set up bot and fill basic info like descriptions
 
-2. Set up scopes by going to OAuth & Permissions
+2. Set up scopes by going to OAuth & Permissions:
 
 	app_mentions:read
 	chat:write

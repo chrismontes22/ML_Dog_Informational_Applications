@@ -18,7 +18,9 @@ Basic rundown
 2. Set up scopes by going to OAuth & Permissions:
 
 	"app_mentions:read"
+
 	"chat:write"
+	
 	"channels:history"
 
 3. Install to workspace under Install App

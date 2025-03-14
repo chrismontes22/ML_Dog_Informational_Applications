@@ -16,6 +16,7 @@ Basic rundown
 1. Set up bot and fill basic info like descriptions
 
 2. Set up scopes by going to OAuth & Permissions
+
 	-app_mentions:read
 	-chat:write
 	-channels:history
@@ -25,12 +26,17 @@ Basic rundown
 4. Go to Oauth and copy/save Oauth token
 
 5. Set the following in a .evn file (no quotations):
-SLACK_BOT_TOKEN = "Replace with token. Can Be Found  in OAuth. Starts with xox"
-SLACK_SIGNING_SECRET = "Replace with token. Can be found under Basic info"
-SLACK_BOT_USER_ID = "Python will get this, look at script for more details"
-GOOGLE_API_KEY = "Need to go to Google's developer page"
 
-8. Expose to the web. Then go to event subscriptions, enable events on, add the correct url* you are working with, and subscribe to app_mention event name.
+	SLACK_BOT_TOKEN = "Replace with token. Can Be Found  in OAuth. Starts with xox"
+	SLACK_SIGNING_SECRET = "Replace with token. Can be found under Basic info"
+	SLACK_BOT_USER_ID = "Python will get this, look at retrieve_userid.py for more details"
+	GOOGLE_API_KEY = "Need to go to Google's developer page"
+
+6. Pull the repo, and with SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET set, run the retrieve_userid.py file to get SLACK_BOT_USER_ID.
+
+7. With all the environmental variables, run dogbot.py either with Python or Gunicorn.
+
+8. Expose to the web the desired port. Then under the Slack web menu, go to event subscriptions, enable events on, add the correct url* you are working with, and subscribe to app_mention event name.
 *The correct URL will have '/slack/events' the end of the url you are using for the app.
 
 10. Finally go to basic info -> install app -> reinstall to workspace

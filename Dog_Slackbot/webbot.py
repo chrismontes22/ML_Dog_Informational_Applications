@@ -7,6 +7,9 @@ from slack_bolt.adapter.flask import SlackRequestHandler
 from flask import Flask, request
 from tavily import TavilyClient
 import google.generativeai as genai
+from flask import jsonify
+import requests
+
 
 # Load environment variables from .env file
 load_dotenv(find_dotenv())
@@ -20,7 +23,6 @@ if not SLACK_BOT_TOKEN or not SLACK_SIGNING_SECRET or not SLACK_BOT_USER_ID:
     raise EnvironmentError("Slack credentials are not set in the environment variables.")
 
 
-# Configure Google Generative AI
 def configure_generative_ai() -> genai.GenerativeModel:
     """
     Configures Google Generative AI using the API key from environment variables.
@@ -32,23 +34,19 @@ def configure_generative_ai() -> genai.GenerativeModel:
     genai.configure(api_key=api_key)
     return genai.GenerativeModel("gemini-1.5-flash")
 
-# Generate response using Google Generative AI
 def generate_human_response(model: genai.GenerativeModel, question: str, max_tokens: int = 256) -> str:
     """
     Generates a response using the generative AI model.
     """
     generation_config = genai.types.GenerationConfig(max_output_tokens=max_tokens)
     prompt = (
-        f"""You are an assistant that helps people learn more about dog breeds. 
-        After the colon is a set of text with information about dogs, then a question about the given text. 
-        Please answer the question based on the text, but do not mention the text:
-        question - {question}
-        Respond in a friendly manner; you are an informational assistant about dogs."""
+        f"""You are a friendly assistant.
+        Please answer the following question based on the text or to your best knowledge, but do not mention the text:
+        question - {question}"""
     )
     response = model.generate_content(prompt, generation_config=generation_config)
     return response.text
 
-# Initialize TavilyClient
 def init_tavily_client() -> TavilyClient:
     """
     Initializes the TavilyClient using the API key from environment variables.
@@ -59,7 +57,6 @@ def init_tavily_client() -> TavilyClient:
 
     return TavilyClient(api_key=tavily_api_key)
 
-# Call Tavily API using TavilyClient
 def call_tavily_api(query: str) -> Dict[str, Any]:
     """
     Calls the Tavily API using TavilyClient to retrieve results based on the user's query.
@@ -72,7 +69,6 @@ def call_tavily_api(query: str) -> Dict[str, Any]:
 
     return response
 
-# Summarize Tavily results if no 'answer' field is provided
 def summarize_tavily_results(results: list) -> str:
     """
     Summarizes the content from the Tavily results if no 'answer' is provided.
@@ -90,7 +86,6 @@ def summarize_tavily_results(results: list) -> str:
 
     return "\n".join(summary)
 
-# Full processing pipeline
 def process_question_with_tavily_and_google(query: str) -> str:
     """
     Processes the user's query by calling Tavily, summarizing the results if needed,
@@ -117,10 +112,9 @@ app = App(token=SLACK_BOT_TOKEN)
 flask_app = Flask(__name__)
 handler = SlackRequestHandler(app)
 
-import requests
-
 @app.command("/webbot")
 def handle_websearch(ack, body: Dict[str, Any], say) -> None:
+    """Takes user input and cleans it, passes input through tavily and google."""
     # Immediately ack with a quick response
     ack("*Fetching your data...*")
     query: str = body.get("text", "").strip()
@@ -138,8 +132,6 @@ def handle_websearch(ack, body: Dict[str, Any], say) -> None:
     
     threading.Thread(target=background_process).start()
 
-
-from flask import jsonify
 
 @flask_app.route("/webbot", methods=["POST"])
 def handle_websearch_command():
@@ -165,7 +157,6 @@ def handle_websearch_command():
     threading.Thread(target=background_process).start()
 
     return jsonify({"response_type": "ephemeral", "text": "Processing your request..."}), 200
-
 
 
 @app.event("app_mention")
@@ -200,9 +191,9 @@ def handle_mentions(body: Dict[str, Any], say: Any) -> None:
     threading.Thread(target=background_process).start()
 
 
-# Handle Slack events via Flask
 @flask_app.route("/slack/events", methods=["POST"])
 def slack_events() -> Tuple[str, int, Dict[str, str]]:
+    """Handle Slack events via Flask"""
     data = request.json
     # Handle URL verification challenge
     if data.get("type") == "url_verification":

@@ -10,8 +10,8 @@ load_dotenv(find_dotenv())
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
 CHANNEL_ID = os.environ["CHANNEL_ID"]  
 
-# Function to get the current Bitcoin price
-def get_bitcoin_price():
+def get_bitcoin_price() -> float:
+    """Use Coindesk API to get current BTC price."""
     url = 'https://data-api.coindesk.com/index/cc/v1/latest/tick?market=cadli&instruments=BTC-USD,ETH-USD&apply_mapping=true'
     response = requests.get(url)
     data = response.json()
@@ -20,8 +20,8 @@ def get_bitcoin_price():
     price = data["Data"]["BTC-USD"]["VALUE"]
     return price
 
-# Function to post the Bitcoin price to Slack
-def post_to_slack(price):
+def post_to_slack(price: float) -> None:
+    """Uses the Slack WebClient to send a message with the Bitcoin price to a specific channel."""
     client = WebClient(token=SLACK_BOT_TOKEN)
     try:
         response = client.chat_postMessage(
@@ -36,4 +36,4 @@ if __name__ == "__main__":
     while True:
         bitcoin_price = get_bitcoin_price()
         post_to_slack(bitcoin_price)
-        time.sleep(30)  
+        time.sleep(300)  
